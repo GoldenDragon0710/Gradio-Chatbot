@@ -4,15 +4,15 @@ from loguru import logger
 from typing import List
 from pydantic import BaseModel
 import markdown
-import pyaudio
-import wave
+# import pyaudio
+# import wave
 import os
 from dotenv import load_dotenv
 load_dotenv()
 
 openai.api_key = os.environ.get('API_KEY')
-audio = pyaudio.PyAudio()
-stream = audio.open(format=pyaudio.paInt16, channels=1, rate=16000, input=True, frames_per_buffer=1024)
+# audio = pyaudio.PyAudio()
+# stream = audio.open(format=pyaudio.paInt16, channels=1, rate=16000, input=True, frames_per_buffer=1024)
 
 messages = [{"role": "assistant", "content": "Hello there! \n I'm Alfred Penny. \n At your service..."}]
 
@@ -549,27 +549,27 @@ def msg_record_btn():
 
 def modal_record_btn():
   print("Recording started...")
-  frames = []
-  while True:
-    data = stream.read(1024)
-    frames.append(data)
-    if len(frames) > 16000 / 1024 * 5: # Record voice for 5 seconds (can be adjusted) 
-      break
-  stream.stop_stream()
-  stream.close()
-  audio.terminate()
+  # frames = []
+  # while True:
+  #   data = stream.read(1024)
+  #   frames.append(data)
+  #   if len(frames) > 16000 / 1024 * 5: # Record voice for 5 seconds (can be adjusted) 
+  #     break
+  # stream.stop_stream()
+  # stream.close()
+  # audio.terminate()
 
-  wf = wave.open("recorded_voice.wav", 'wb')
-  wf.setnchannels(1)
-  wf.setsampwidth(audio.get_sample_size(pyaudio.paInt16))
-  wf.setframerate(16000)
-  wf.writeframes(b''.join(frames))
-  wf.close()
+  # wf = wave.open("recorded_voice.wav", 'wb')
+  # wf.setnchannels(1)
+  # wf.setsampwidth(audio.get_sample_size(pyaudio.paInt16))
+  # wf.setframerate(16000)
+  # wf.writeframes(b''.join(frames))
+  # wf.close()
   
-  print("Transcribing...")
-  audio_file= open("recorded_voice.wav", "rb")
-  transcript = openai.Audio.transcribe("whisper-1", audio_file)
-  return predict(transcript["text"])
+  # print("Transcribing...")
+  # audio_file= open("recorded_voice.wav", "rb")
+  # transcript = openai.Audio.transcribe("whisper-1", audio_file)
+  # return predict(transcript["text"])
   
 def record_modal_close_btn():
   onclick = "let modalElement = document.getElementById(\"record_modal\"); modalElement.style.display=\"none\"; let contentElement=document.getElementById(\"chat_content\"); contentElement.style.height=\"calc(100vh - 60px - 110px)\";"
@@ -664,7 +664,7 @@ with gr.Blocks(css=css) as demo:
       listen_title = gr.Markdown(value="""<h2><center>Listening</center></h2>""", elem_id="listentitle")
     with gr.Row():
       recording = gr.Button("", elem_id="modal_record_btn")
-      recording.click(fn=modal_record_btn, outputs=[chatbot])
+      # recording.click(fn=modal_record_btn, outputs=[chatbot])
     gr.HTML(value=record_modal_close_btn, elem_id="modal_close_btn")
     
   with gr.Row(elem_id="feedback_modal"):
