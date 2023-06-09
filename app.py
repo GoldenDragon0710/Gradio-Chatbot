@@ -4,15 +4,13 @@ from loguru import logger
 from typing import List
 from pydantic import BaseModel
 import markdown
-# import pyaudio
-# import wave
+import pyaudio
+import wave
 import os
 from dotenv import load_dotenv
 load_dotenv()
 
 openai.api_key = os.environ.get('API_KEY')
-# audio = pyaudio.PyAudio()
-# stream = audio.open(format=pyaudio.paInt16, channels=1, rate=16000, input=True, frames_per_buffer=1024)
 
 messages = [{"role": "assistant", "content": "Hello there! \n I'm Alfred Penny. \n At your service..."}]
 
@@ -89,6 +87,7 @@ footer {
 .chat_content {
   height: calc(100vh - 60px - 125px);
   overflow-y: auto;
+  transition: transform 3s ease-out;
 }
 .chat_content::-webkit-scrollbar {
   display: none;
@@ -108,7 +107,7 @@ footer {
   display: flex;
   justify-content: space-between;
 }
-.feedback_btns{
+.feedback_group{
   display: flex;
   align-items: start;
 }
@@ -143,7 +142,7 @@ footer {
 }
 #input_container {
   position: absolute;
-  bottom: -55px;
+  bottom: 0px;
   flex-direction: column;
   border-top: 1px solid rgba(212, 187, 152, 0.1);
   background: #28351b;
@@ -192,7 +191,7 @@ footer {
 #record_modal {
   display: none;
   position: absolute !important;
-  bottom: -54px;
+  bottom: 0;
   z-index: 10;
   padding: 20px;
   flex-direction: column;
@@ -311,6 +310,7 @@ footer {
   bottom: -53px;
   display: flex;
   justify-content: center;
+  touch-action: pan-y;
 }
 .arrow_button {
   width: 20px;
@@ -405,6 +405,9 @@ footer {
 .meta-text-center {
   display: none !important;
 }
+.translucent{
+  display: none !important;
+}
 
 #animation1 h3 {
   color: #E5DFC8 !important;
@@ -494,9 +497,7 @@ footer {
 class Message(BaseModel):
   role: str
   content: str
-  
-modal_show = False
-  
+
 def make_completion(messages:List[Message]):
   try:
     response = openai.ChatCompletion.create(
@@ -517,19 +518,22 @@ def page_refresh():
 
 def predict(input):
   messages.append({"role": "user", "content": input})
-  res = make_completion(messages)
-  response = res.replace("\n\n", "\n")
-  messages.append({"role": "assistant", "content": response})
+  msg = [{"role": "system", "content": "Your name is Alfred Penny, you are a human"},
+         {"role": "user", "content": input}]
+  response = make_completion(msg)
+#   response = res.replace("\n\n", "\n")
+  messages.append({"role": "assistant", "content": response})  
   return chatbot_container()
 
 def chatbot_container():
     chat_history = "<div class='chat_content'>"
-    onclick = "let modalElement=document.getElementById(\"feedback_modal\"); modalElement.style.display=\"block\";"
+    onclick_like = "let modalElement=document.getElementById(\"feedback_modal\"); modalElement.style.display=\"block\"; let textareaElement = document.querySelector(\"#feedback_input_container textarea\"); textareaElement.setAttribute(\"placeholder\", \"What do you like about the response?\");"
+    onclick_dislike = "let modalElement=document.getElementById(\"feedback_modal\"); modalElement.style.display=\"block\"; let textareaElement = document.querySelector(\"#feedback_input_container textarea\"); textareaElement.setAttribute(\"placeholder\", \"What do you dislike about the response?\");"
     for index, msg in enumerate(messages):
       if msg["role"] == "user":
         chat_history += "<div id='array_{}' class='chat_text {}'>{}</div>".format(index, msg["role"], markdown.markdown(msg["content"], output_format='html5'))
       elif msg["role"] == "assistant":
-        chat_history += "<div id='array_{}' class='chat_text {}'>{}<div class='feedback_btns' onclick='{}'><img src='file/public/like.svg'/><img src='file/public/dislike.svg'/></div></div>".format(index, msg["role"], markdown.markdown(msg["content"], output_format='html5'), onclick)
+        chat_history += "<div id='array_{}' class='chat_text {}'>{}<div class='feedback_group'><div class='feedback_btns' onclick='{}'><img src='file/public/like.svg'/></div><div class='feedback_btns' onclick='{}'><img src='file/public/dislike.svg'/></div></div></div>".format(index, msg["role"], markdown.markdown(msg["content"], output_format='html5'), onclick_like, onclick_dislike)
     chat_history += "</div>"
     return chat_history
 
@@ -549,27 +553,30 @@ def msg_record_btn():
 
 def modal_record_btn():
   print("Recording started...")
-  # frames = []
-  # while True:
-  #   data = stream.read(1024)
-  #   frames.append(data)
-  #   if len(frames) > 16000 / 1024 * 5: # Record voice for 5 seconds (can be adjusted) 
-  #     break
-  # stream.stop_stream()
-  # stream.close()
-  # audio.terminate()
+  audio = pyaudio.PyAudio()
+  stream = audio.open(format=pyaudio.paInt16, channels=1, rate=16000, input=True, frames_per_buffer=1024)
+  frames = []
+  for i in range(int(16000 / 1024 * 5)):
+    data = stream.read(1024)
+    frames.append(data)
+  stream.stop_stream()
+  stream.close()
+  audio.terminate()
 
-  # wf = wave.open("recorded_voice.wav", 'wb')
-  # wf.setnchannels(1)
-  # wf.setsampwidth(audio.get_sample_size(pyaudio.paInt16))
-  # wf.setframerate(16000)
-  # wf.writeframes(b''.join(frames))
-  # wf.close()
+  wf = wave.open("recorded_voice.wav", 'wb')
+  wf.setnchannels(1)
+  wf.setsampwidth(audio.get_sample_size(pyaudio.paInt16))
+  wf.setframerate(16000)
+  wf.writeframes(b''.join(frames))
+  wf.close()
   
-  # print("Transcribing...")
-  # audio_file= open("recorded_voice.wav", "rb")
-  # transcript = openai.Audio.transcribe("whisper-1", audio_file)
-  # return predict(transcript["text"])
+  print("Transcribing...")
+  params = {
+    "language": "en"
+  }
+  audio_file= open("recorded_voice.wav", "rb")
+  transcript = openai.Audio.transcribe("whisper-1", audio_file, **params)
+  return predict(transcript["text"])
   
 def record_modal_close_btn():
   onclick = "let modalElement = document.getElementById(\"record_modal\"); modalElement.style.display=\"none\"; let contentElement=document.getElementById(\"chat_content\"); contentElement.style.height=\"calc(100vh - 60px - 110px)\";"
@@ -637,7 +644,6 @@ def error_modal():
   error += "</div>"
   return error
 
-gr.HTML(value="<script>document.getElementById('submodal').addEventListener('click', displayDate);function displayDate() {alert(123);}</script>")
 with gr.Blocks(css=css) as demo:
   logger.info("Starting Demo...")
 
@@ -647,10 +653,9 @@ with gr.Blocks(css=css) as demo:
   chatbot = gr.HTML(value=chatbot_container, elem_id="chatbot_container")
 
   with gr.Row(elem_id="input_container"):
-    txt = gr.Textbox(show_label=False, max_lines=5, placeholder="How do you feel today?", elem_id="input_content").style(container=False)
+    txt = gr.Textbox(show_label=False, max_lines=2, placeholder="How do you feel today?", elem_id="input_content").style(container=False)
     send_btn = gr.Button("", elem_id="input_send_btn")
     send_btn.click(fn=predict, inputs=[txt], outputs=[chatbot])
-    # gr.HTML(value=msg_send_btn, elem_id="input_send_btn")
     gr.HTML(value=msg_record_btn, elem_id="input_record_btn")
     with gr.Row(elem_id="download_submodal"):
       gr.Markdown(value="""<h5><center>Download the app</center></h5>""", elem_id="footer")
@@ -658,13 +663,15 @@ with gr.Blocks(css=css) as demo:
         gr.HTML(value=AppStore, elem_id="appstore")
         gr.HTML(value=GooglePlay, elem_id="googleplay")
   txt.submit(predict, inputs=[txt], outputs=[chatbot])
-  
+  chatbot1 = gr.HTML(visible=False)
+  chatbot.change(lambda x: x, chatbot, chatbot1, _js="(x) => document.getElementsByClassName('chat_content')[0].scrollTop = document.getElementsByClassName('chat_content')[0].scrollHeight")
+
   with gr.Row(elem_id="record_modal"):
     with gr.Row():
       listen_title = gr.Markdown(value="""<h2><center>Listening</center></h2>""", elem_id="listentitle")
     with gr.Row():
       recording = gr.Button("", elem_id="modal_record_btn")
-      # recording.click(fn=modal_record_btn, outputs=[chatbot])
+      recording.click(fn=modal_record_btn, outputs=[chatbot])
     gr.HTML(value=record_modal_close_btn, elem_id="modal_close_btn")
     
   with gr.Row(elem_id="feedback_modal"):
